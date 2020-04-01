@@ -1,0 +1,43 @@
+<html>
+<head>
+<title>JavaScript Sprite Test</title>
+<script src="sprite.js"></script>
+<script><!--
+var test;
+function init() {
+	test = new Sprite("sprite1");
+}
+var frame = 200;
+function run() {
+	test.Resize(64, 64);
+/*
+	if (frame % 200 > 99)
+		test.Move(100 - frame % 100, 0);
+	else
+		test.Move(frame % 100, 0);
+*/
+	test.Move(Math.abs(frame % 200 - 100), 0);
+	switch ((frame / 2) % 4) {
+		case 0:
+			test.setImage("img-32/blinkyr1.gif");
+			break;
+		case 1:
+			test.setImage("img-32/blinkyr2.gif");
+			break;
+		case 2:
+			test.setImage("img-32/blinkyr3.gif");
+			break;
+		case 3:
+			test.setImage("img-32/blinkyr2.gif");
+			break;
+	}
+	frame++;
+}
+//--></script>
+</head>
+<body style="background-color: #000000;" onload="init(); setInterval('run();', 50);">
+<div id="sprite1" style="height:  32px; width: 32px; position: absolute; filter: alpha(opacity=100);" border="0" padding="0">
+<img height="100%" width="100%" border="0" padding="0" src="blinkyr1.png">
+</div>
+</body>
+</html>

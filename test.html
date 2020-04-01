@@ -1,0 +1,286 @@
+<html>
+<head>
+<title>JavaScript Map Test</title>
+<script src="sprite.js"></script>
+<script src="pacman.js"></script>
+<script>
+
+/*
+ * AJAX
+ */
+function ajax(url, vars, callback) {
+	var c;
+	if (window.XMLHttpRequest) {
+		c = new XMLHttpRequest();
+	} else {
+		c = new ActiveXObject("MSXML2.XMLHTTP");
+	}
+
+	c.open("GET", url, true);
+	c.onload = function() {
+		if (c.responseText) {
+			callback(null, c.responseText);
+		}
+	}
+	c.send(vars);
+}
+function ajax2(type, url, vars, callback, param) {
+
+	// Get AJAX Object
+	var c;
+	if (window.XMLHttpRequest) {
+		c = new XMLHttpRequest();
+	} else {
+		c = new ActiveXObject("MSXML2.XMLHTTP");
+	}
+
+	// TODO: Escape characters
+	var form_string;
+	if (vars.length) {
+		if (vars[0].length > 1)
+			form_string = vars[0][0] + "=" + vars[0][1];
+		else
+			form_string = vars[0][0];
+		for (var i = 1; i < vars.length; i++) {
+			if (vars[i].length > 1)
+				form_string += "&" + vars[i][0] + "=" + vars[i][1];
+			else
+				form_string += "&" + vars[i][0];
+		}
+	}
+
+	if (type == "GET")
+		c.open(type, url + "?" + form_string, true);
+	else
+		c.open(type, url, true);
+/*
+	c.onload = function() {
+		// TODO: Failure handling.  c.status
+		// TODO: XML Handling?	c.responseXML
+		// Just return c?
+		if (c.responseText) {
+			callback(param, c.responseText);
+		}
+	}
+*/
+	c.onreadystatechange = function() {
+		if (c.readyState == 4)
+			callback(param, c.responseText);
+	}
+
+	if (type == "POST") {
+		//Send the proper header information along with the request
+		c.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		// Safari doesn't like following
+		//c.setRequestHeader("Content-length", form_string.length);
+		//c.setRequestHeader("Connection", "close");
+		c.send(form_string);
+	}
+	else
+		c.send(null);
+}
+
+var ghost;
+function load_callback(param, level_data) {	
+	var rows = level_data.split("\n");
+	ghost = rows.shift();
+	map = new MapChunk(rows);
+	blinky = new Ghost('blinky');
+	inky = new Ghost('inky');
+	pinky = new Ghost('pinky');
+	clyde = new Ghost('clyde');
+	pacman = new Ghost('pac');
+	ghosts = [ blinky, pinky, inky, clyde, pacman ];
+	// TODO:  Temporary to trick browsers into thinking they are done loading.
+	//setTimeout('ajax("PacServ?update=0", null, update_callback); ajax("PacServ?update=1", null, update_callback); setInterval("run2();", 25);', 1000);
+	setTimeout('ajax2("POST", "PacServ", [ [ "update", "0" ] ], update_callback); ajax2("POST", "PacServ", [ [ "update", "1" ] ], update_callback); setInterval("run2();", 20);', 1000);
+	//setInterval('run();', 66);
+	//setInterval('run2();', 33);
+
+	if (ghost < 5) {
+		var e = getElement("player");
+		e.innerHTML = "<IMG SRC='img-32/" + ghosts[ghost].name + "r1.gif'>";
+	}
+}
+var last_update;
+var newdir = 0;
+var client_tick = 0;
+function update_callback(param, update_data) {
+	var entity_data = update_data.split("\n");
+	var update_ = entity_data[0].split(",");
+	var tick = Math.floor(update_[0]);
+	for (var i = 1; i < update_.length; i++) {
+		var dims = update_[i].split("x");
+		var x = Math.floor(dims[0]);
+		var y = Math.floor(dims[1]);
+		map.tiles[y][x].src = "img-32/wall1111.gif";
+				
+	}
+	if (tick > client_tick) {
+	client_tick = tick;
+	for (var i = 0; i < 5; i++) {
+		var values = entity_data[i + 1].split(",");
+		ghosts[i].x = Math.floor(values[0]);
+		ghosts[i].x_diff = ghosts[i].x - ghosts[i].cur_x;
+		ghosts[i].x_diff /= 1.0;
+		ghosts[i].y = Math.floor(values[1]);
+		ghosts[i].y_diff = ghosts[i].y - ghosts[i].cur_y;
+		ghosts[i].y_diff /= 1.0;
+		ghosts[i].speed - Math.floor(values[2]);
+		ghosts[i].dir = Math.floor(values[3]);
+		ghosts[i].dir_next = Math.floor(values[4]);
+
+		if (Math.abs(ghosts[i].x_diff) + Math.abs(ghosts[i].y_diff) > 48.0) {
+			ghosts[i].cur_x = ghosts[i].x;
+			ghosts[i].x_diff = 0.0;
+			ghosts[i].cur_y = ghosts[i].y;
+			ghosts[i].y_diff = 0.0;
+		}
+	}
+	}
+	last_update = new Date().valueOf();
+	
+	ajax2("POST", "PacServ", [["update", (tick + 2)],["ghost", ghost],["newdir", newdir]], update_callback, null);
+}
+	
+
+var map;
+var blinky, inky, pinky, clyde;
+var pacman;
+var ghosts;
+var view_pos_x, view_pos_y;
+function run() {
+	blinky.Think();
+	pinky.Think();
+	inky.Think();
+	clyde.Think();
+}
+function run2() {
+
+	var tmp = new Date().valueOf();
+	if (last_update < tmp - 150)
+		return;
+	
+	blinky.Interpolate();
+	pinky.Interpolate();
+	inky.Interpolate();
+	clyde.Interpolate();
+	pacman.Interpolate();
+
+	var follow = ghost;
+	if (follow < 0 || follow > 4)
+		follow = 4;
+	
+	var view = getElement("viewport");
+	var board = getElement("map");
+	var view_x = view.offsetWidth / 2 - ghosts[follow].cur_x;
+	if (view_x < view.offsetWidth - map.chunk.offsetWidth)
+		view_x = view.offsetWidth - map.chunk.offsetWidth;
+	if (view_x > 0) view_x = 0;
+	var view_y = view.offsetHeight / 2 - ghosts[follow].cur_y;
+	if (view_y > 0) view_y = 0;
+	if (view_y < view.offsetHeight - board.offsetHeight)
+		view_y = view.offsetHeight - board.offsetHeight;
+
+	if (map.chunk.offsetWidth <= view.offsetWidth)
+		view_x = (view.offsetWidth - map.chunk.offsetWidth) / 2;
+	if (board.offsetHeight <= view.offsetHeight)
+		view_y = (view.offsetHeight - board.offsetHeight) / 2;
+	view_x = Math.floor(view_x);
+	view_y = -Math.floor(view_y);
+
+	if (view_x != view_pos_x) {
+		board.style.left = view_x + "px";
+		view_pos_x = view_x;
+	}
+	if (view_y != view_pos_y) {
+		//board.style.top = view_y + "px";
+		view.scrollTop = view_y;
+		view_pos_y = view_y;
+	}
+}
+
+function init()
+{
+	ajax2("POST", "PacServ", [ [ "load", "true" ] ], load_callback, null);
+}
+
+/*
+ * Keyboard handler.
+ *
+ * TODO:
+ *      More refined testing
+ *      Add multi-button support
+ *
+ * &lt;body onkeydown="KeyHandler(event);"&gt;
+ * window.addEventListnener('keypress', KeyHandler, true);
+ */
+function KeyHandler(e) {
+        var dir;
+        var code;
+
+        if (window.event)
+                e = window.event;
+        if (e.keyCode)
+                code = e.keyCode;
+        else if (e.charCode)
+                code = e.charCode;
+        else
+                alert ("Error handling keyboard!");
+
+        switch (code) {
+                case 65:        // a
+                case 97:
+                case 72:        // h
+                case 104:
+                case 37:        // left arrow key
+                        dir = 1;
+                        break;
+                case 68:        // d
+                case 100:
+                case 76:        // l
+                case 108:
+                case 39:        // right arrow key
+                        dir = 2;
+                        break;
+                case 83:        // s
+                case 115:
+                case 74:        // j
+                case 106:
+                case 40:        // down arrow key
+                        dir = 3;
+                        break;
+                case 87:        // w
+                case 119:
+                case 75:        // k
+                case 107:
+                case 38:        // up arrow key
+                        dir = 4;
+                        break;
+		case 80:
+		case 112:
+			ghost = 4;
+			dir = 0;
+			break;
+                default:
+                        dir = 0;
+                        return;
+        }
+
+        newdir = dir;
+}
+</script>
+</head>
+<body style="padding: 0px; margin: 0px;" onload="Preload('init();');" onKeyDown="KeyHandler(event);">
+<div id="viewport" style="padding: 0px; left: 0; top: 0px; width: 100%; height: 100%; display: block; position: relative; overflow: hidden; background-color: #000000; border: 0px;">
+<div id="map" style="left: 0px; top: 0px; display: block; /*position: absolute;*/"></div>
+</div>
+
+<div style="width: 100%; color: #FFFFFF; left: 0px; top: 0px; display: block; position: absolute;">
+<div id="player" style="float: left;">PACMAN</div>
+<div style="float: right;">OPTIONS</div>
+</div>
+
+<!-- </div> -->
+</body>
+</html>

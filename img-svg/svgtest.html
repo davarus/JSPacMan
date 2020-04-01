@@ -1,0 +1,78 @@
+<html>
+<head>
+<title>SVG Ghost Test</title>
+</head>
+
+<body bgcolor="#000000" onload="test()">
+<embed src="ghost2.svg" wmode="transparent" height="100%" />
+<!-- <embed id="test" style="position: absolute;" src="ghost2.svg" wmode="transparent" height="32" width="32" /> -->
+<script><!--
+
+function ghost(name) {
+
+	this.name = name;
+
+	switch (name) {
+	case "blinky":
+		this.color = "#FF0000";
+		break;
+	case "pinky":
+		this.color = "#FF0080";
+		break;
+	case "inky":
+		this.color = "#00F0F0";
+		break;
+	case "clyde":
+		this.color = "#FF6600";
+		break;
+	}	
+
+	document.write('<embed id="' + name + '" src="ghost2.svg" wmode="transparent" style="position: absolute;" height="32" width="32" />');
+	this.element = document.getElementById(name);
+//	this.svgdoc = this.element.getSVGDocument();
+//	this.svgdoc.getElementById("eyeballs").setAttribute("transform", "translate(2,0)");
+//	this.svgcolor = this.svgdoc.getElementById("stop_body_color");
+//	this.svgcolor.setAttribute("style", "stop-color:" + this.color + ";stop-opacity:1;");
+}
+
+var blinky;
+blinky = new ghost("inky");
+
+//function test() {
+//	anim(0);
+//}
+
+function test() {
+ test = document.getElementById("inky");
+ testsvg = test.getSVGDocument();
+ teste = testsvg.getElementById("eyeballs");
+ teste.setAttribute("transform", "translate(2,0)");
+ teste = testsvg.getElementById("stop_body_color");
+ //ghost = new ghost("clyde");
+ teste.setAttribute("style", "stop-color:" + blinky.color + ";stop-opacity:1;");
+ //scale(0);
+ anim(0);
+}
+
+
+function anim (x) {
+	blinky.element.style.left = x + "px";
+	blinky.element.style.top = x + "px";
+	x = x + 1;
+	setTimeout("anim(" + x + ")", 100);
+}
+
+function scale(x) {
+ test = document.getElementById("test");
+ //size = Math.floor(Math.random() * 32) + 64;
+ //test.height = size;
+ //test.width = size;
+ test.style.left = x + "px";
+ test.style.top = x + "px";
+ x = x + 1;
+ setTimeout("scale(" + x + ")", 100);
+}
+
+--></script>
+</body>
+</html>
